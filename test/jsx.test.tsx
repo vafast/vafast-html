@@ -1,6 +1,9 @@
+/** @jsx createElement */
+/** @jsxFrag createElement */
 import { describe, expect, it } from 'bun:test'
 import { Server } from 'vafast'
 import { html } from '../src'
+import { createElement } from '@kitajs/html'
 
 function request(path: string) {
 	return new Request(`http://localhost${path}`)

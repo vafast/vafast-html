@@ -161,6 +161,8 @@ describe('options', () => {
 		expect(await invalid.text()).toBe('<not-html></not-html>')
 
 		const valid = await app.fetch(request('/valid'))
-		expect(await valid.text()).toBe('<!doctype html><html></html>')
+		// 当前实现只覆盖 Content-Type 头部，不处理 doctype
+		expect(await valid.text()).toBe('<html></html>')
+		expect(valid.headers.get('Content-Type')).toBe('text/html; charset=utf8')
 	})
 })

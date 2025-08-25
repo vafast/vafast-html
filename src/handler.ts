@@ -23,9 +23,7 @@ export function handleHtml(
 
 		return new Response(
 			value,
-			hasContentType
-				? undefined
-				: { headers: { 'content-type': options.contentType! } }
+			{ headers: { 'content-type': options.contentType! } }
 		)
 	}
 
@@ -59,8 +57,6 @@ export function handleHtml(
 
 	return new Response(
 		stream as any,
-		hasContentType
-			? undefined
-			: { headers: { 'content-type': options.contentType! } }
+		{ headers: { 'content-type': options.contentType! } }
 	)
 }

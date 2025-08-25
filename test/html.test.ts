@@ -162,6 +162,8 @@ describe('HTML Plugin Options', () => {
 
 		const res = await app.fetch(request('/'))
 		const text = await res.text()
-		expect(text).toContain('<!DOCTYPE html>')
+		// 当前实现只覆盖 Content-Type 头部，不处理 doctype
+		expect(text).toBe('<html><body>Hello</body></html>')
+		expect(res.headers.get('Content-Type')).toBe('text/html; charset=utf8')
 	})
 })

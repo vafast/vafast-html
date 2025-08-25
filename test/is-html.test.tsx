@@ -1,5 +1,8 @@
+/** @jsx createElement */
+/** @jsxFrag createElement */
 import { describe, expect, it } from 'bun:test'
 import { isHtml } from '../src'
+import { createElement } from '@kitajs/html'
 
 describe('isHtml', () => {
 	it('detects html', () => {

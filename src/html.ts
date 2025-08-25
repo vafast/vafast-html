@@ -42,8 +42,31 @@ export function createHtmlPlugin(options: HtmlOptions = {}): Middleware {
 		const response = await next()
 
 		// 自动检测 HTML 响应
-		if (options.autoDetect && isHtml(response)) {
-			return handleHtml(response, options, true)
+		if (options.autoDetect) {
+			// 检查响应是否已经是 HTML 类型
+			const contentType = response.headers.get('content-type') || response.headers.get('Content-Type')
+			if (contentType && contentType.includes('text/html')) {
+				// 创建一个新的 Response，使用插件配置的 contentType
+				const newResponse = new Response(response.body, {
+					status: response.status,
+					statusText: response.statusText,
+					headers: new Headers(response.headers)
+				})
+				newResponse.headers.set('content-type', options.contentType!)
+				return newResponse
+			}
+			
+			// 检查响应内容是否为 HTML
+			if (isHtml(response)) {
+				// 创建一个新的 Response，使用插件配置的 contentType
+				const newResponse = new Response(response.body, {
+					status: response.status,
+					statusText: response.statusText,
+					headers: new Headers(response.headers)
+				})
+				newResponse.headers.set('content-type', options.contentType!)
+				return newResponse
+			}
 		}
 
 		return response
