@@ -1,13 +1,17 @@
-import { Elysia } from 'elysia'
+import { Server } from 'vafast'
 import { html } from '../src'
 
-const app = new Elysia()
-	.use(html({ autoDetect: true }))
-	.get('/a', ({ html }) => html(`<h1>Hello World</h1>`))
-	.compile()
+const app = new Server([
+	{
+		method: 'GET',
+		path: '/a',
+		handler: (req: any) => req.html.html(`<h1>Hello World</h1>`)
+	}
+])
 
-console.log(app.routes[0]?.composed?.toString())
+app.use(html({ autoDetect: true }))
 
-app.handle(new Request('http://localhost:8080/a'))
-	.then((x) => x.text())
-	.then(console.log)
+// 导出用于 Bun 服务器
+export default {
+	fetch: (req: Request) => app.fetch(req)
+}

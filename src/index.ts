@@ -1,12 +1,12 @@
-import { createElement } from './h'
+import { createElement } from "./h";
 
-export * from './html'
-export * from './options'
-export * from './utils'
+export * from "./html";
+export * from "./options";
+export * from "./utils";
 
-export { ErrorBoundary } from '@kitajs/html/error-boundary'
+export { ErrorBoundary } from "@kitajs/html/error-boundary";
 
-export { Html } from '@kitajs/html'
-export { createElement }
+export { Html } from "@kitajs/html";
+export { createElement };
 
-export { html as default } from './html'
+export { html as default } from "./html";

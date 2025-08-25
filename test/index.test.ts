@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia'
+import { Server } from 'vafast'
 import { html } from '../src'
 
 import { describe, expect, it } from 'bun:test'
@@ -17,54 +17,90 @@ const page = `<!DOCTYPE HTML>
 
 describe('HTML', () => {
 	it('auto return html', async () => {
-		const app = new Elysia().use(html()).get('/', () => page)
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => new Response(page, { headers: { 'Content-Type': 'text/html' } })
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(req('/'))
+		const res = await app.fetch(req('/'))
 		expect(await res.text()).toBe(page)
 		expect(res.headers.get('Content-Type')).toContain('text/html')
 	})
 
 	it('manual return html', async () => {
-		const app = new Elysia().use(html()).get('/', ({ html }) => html(page))
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: (req) => (req as any).html.html(page)
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(req('/'))
+		const res = await app.fetch(req('/'))
 		expect(await res.text()).toBe(page)
 		expect(res.headers.get('Content-Type')).toContain('text/html')
 	})
 
 	it('inherits header', async () => {
-		const app = new Elysia().use(html()).get('/', ({ html, set }) => {
-			set.headers.Server = 'Elysia'
-			return html('<h1>Hi</h1>')
-		})
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: (req) => {
+					const response = (req as any).html.html('<h1>Hi</h1>')
+					if (response instanceof Response) {
+						response.headers.set('Server', 'Vafast')
+					}
+					return response
+				}
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(req('/'))
-		expect(res.headers.get('Server')).toBe('Elysia')
+		const res = await app.fetch(req('/'))
+		expect(res.headers.get('Server')).toBe('Vafast')
 	})
 
 	it('return any html tag', async () => {
-		const app = new Elysia()
-			.use(html())
-			.get('/', () => `<html>Hello World</html>`)
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => new Response(`<html>Hello World</html>`, { headers: { 'Content-Type': 'text/html' } })
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(req('/'))
+		const res = await app.fetch(req('/'))
 		expect(res.headers.get('Content-type')).toContain(
 			'text/html; charset=utf8'
 		)
 	})
 
 	it('consistently identifies html content', async () => {
-		const app = new Elysia().use(html()).get('/', () => `<h1>Hi</h1>`)
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => new Response(`<h1>Hi</h1>`, { headers: { 'Content-Type': 'text/html' } })
+			}
+		])
+		app.use(html())
 
-		let res = await app.handle(req('/'))
+		let res = await app.fetch(req('/'))
 		expect(res.headers.get('Content-type')).toContain(
 			'text/html; charset=utf8'
 		)
-		res = await app.handle(req('/'))
+		res = await app.fetch(req('/'))
 		expect(res.headers.get('Content-type')).toContain(
 			'text/html; charset=utf8'
 		)
-		res = await app.handle(req('/'))
+		res = await app.fetch(req('/'))
 		expect(res.headers.get('Content-type')).toContain(
 			'text/html; charset=utf8'
 		)
@@ -73,40 +109,78 @@ describe('HTML', () => {
 
 describe('HTML vs No html - header', () => {
 	it('inherits header plain response when using the html plugin', async () => {
-		const app = new Elysia().use(html()).get('/', ({ set }) => {
-			set.headers.Server = 'Elysia'
-			return 'Hello'
-		})
-		const res = await app.handle(req('/'))
-		expect(res.headers.get('Server')).toBe('Elysia')
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => {
+					const response = new Response('Hello')
+					response.headers.set('Server', 'Vafast')
+					return response
+				}
+			}
+		])
+		app.use(html())
+		
+		const res = await app.fetch(req('/'))
+		expect(res.headers.get('Server')).toBe('Vafast')
 	})
 
 	it('inherits header plain response not using the html plugin', async () => {
-		const app = new Elysia().get('/', ({ set }) => {
-			set.headers.Server = 'Elysia'
-			return 'Hello'
-		})
-		const res = await app.handle(req('/'))
-		expect(res.headers.get('Server')).toBe('Elysia')
-		expect(res.headers.get('Content-Type')).toBe(null)
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => {
+					const response = new Response('Hello')
+					response.headers.set('Server', 'Vafast')
+					return response
+				}
+			}
+		])
+
+		const res = await app.fetch(req('/'))
+		expect(res.headers.get('Server')).toBe('Vafast')
+		expect(res.headers.get('Content-Type')).toBe('text/plain;charset=utf-8')
 	})
 
 	it('inherits header json response when using the html plugin', async () => {
-		const app = new Elysia().use(html()).get('/', ({ set }) => {
-			set.headers.Server = 'Elysia'
-			return { Hello: 1 }
-		})
-		const res = await app.handle(req('/'))
-		expect(res.headers.get('Server')).toBe('Elysia')
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => {
+					const response = new Response(JSON.stringify({ Hello: 1 }), {
+						headers: { 'Content-Type': 'application/json' }
+					})
+					response.headers.set('Server', 'Vafast')
+					return response
+				}
+			}
+		])
+		app.use(html())
+		
+		const res = await app.fetch(req('/'))
+		expect(res.headers.get('Server')).toBe('Vafast')
 	})
 
 	it('inherits header json response not using the html plugin', async () => {
-		const app = new Elysia().get('/', ({ set }) => {
-			set.headers.Server = 'Elysia'
-			return { Hello: 1 }
-		})
-		const res = await app.handle(req('/'))
-		expect(res.headers.get('Server')).toBe('Elysia')
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => {
+					const response = new Response(JSON.stringify({ Hello: 1 }), {
+						headers: { 'Content-Type': 'application/json' }
+					})
+					response.headers.set('Server', 'Vafast')
+					return response
+				}
+			}
+		])
+
+		const res = await app.fetch(req('/'))
+		expect(res.headers.get('Server')).toBe('Vafast')
 		expect(res.headers.get('Content-Type')).toBe('application/json')
 	})
 })

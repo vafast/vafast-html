@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia'
+import type { Middleware } from 'vafast'
 import { Readable } from 'node:stream'
 import { renderToStream } from '@kitajs/html/suspense'
 
@@ -6,22 +6,20 @@ import { handleHtml } from './handler'
 import { HtmlOptions } from './options'
 import { isHtml } from './utils'
 
-export function html(options: HtmlOptions = {}) {
+export function createHtmlPlugin(options: HtmlOptions = {}): Middleware {
 	// Defaults
 	options.contentType ??= 'text/html; charset=utf8'
 	options.autoDetect ??= true
 	options.isHtml ??= isHtml
 	options.autoDoctype ??= true
 
-	const instance = new Elysia({
-		name: '@elysiajs/html',
-		seed: options
-	}).derive({ as: 'global' }, function htmlPlugin({ set }) {
-		return {
+	return async (req, next) => {
+		// 创建 HTML 响应对象
+		const htmlResponse = {
 			html(
 				value: Readable | JSX.Element
 			): Promise<Response | string> | Response | string {
-				return handleHtml(value, options, 'content-type' in set.headers)
+				return handleHtml(value, options, false)
 			},
 			stream<A = any>(
 				value: (this: void, arg: A & { id: number }) => JSX.Element,
@@ -32,31 +30,25 @@ export function html(options: HtmlOptions = {}) {
 						(value as Function)({ ...args, id })
 					),
 					options,
-					'content-type' in set.headers
+					false
 				)
 			}
 		}
-	})
 
-	if (options.autoDetect)
-		instance.mapResponse(
-			{ as: 'global' },
-			function handlerPossibleHtml({ response: value, set }) {
-				if (
-					!(
-						// Simple html string
-						(
-							isHtml(value) ||
-							// @kitajs/html stream
-							(value instanceof Readable && 'rid' in value)
-						)
-					)
-				)
-					return
+		// 将 HTML 响应对象注入到请求中
+		;(req as any).html = htmlResponse
 
-				return handleHtml(value, options, 'content-type' in set.headers)
-			}
-		)
+		// 继续执行下一个中间件或处理器
+		const response = await next()
 
-	return instance
+		// 自动检测 HTML 响应
+		if (options.autoDetect && isHtml(response)) {
+			return handleHtml(response, options, true)
+		}
+
+		return response
+	}
 }
+
+// 导出默认插件
+export const html = createHtmlPlugin

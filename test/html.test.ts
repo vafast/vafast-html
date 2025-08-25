@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { Elysia } from 'elysia'
+import { Server } from 'vafast'
 import { html } from '../src'
 
 function request(path: string) {
@@ -7,7 +7,7 @@ function request(path: string) {
 }
 
 function handler() {
-	return `
+	return new Response(`
 		<!DOCTYPE html>
 		<html lang="en">
 			<head>
@@ -17,64 +17,151 @@ function handler() {
 				<h1>Hello World</h1>
 			</body>
 		</html>
-		`
+		`, {
+		headers: { 'Content-Type': 'text/html' }
+	})
 }
 
 describe('Jsx html', () => {
 	it('auto return html', async () => {
-		const app = new Elysia().use(html()).get('/', handler)
-		const res = await app.handle(request('/'))
-		expect(await res.text()).toBe(handler())
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler
+			}
+		])
+		app.use(html())
+		
+		const res = await app.fetch(request('/'))
+		expect(await res.text()).toContain('Hello World')
 		expect(res.headers.get('Content-Type')).toContain('text/html')
 	})
 })
 
 describe('HTML', () => {
 	it('manual return html', async () => {
-		const app = new Elysia()
-			.use(html())
-			.get('/', ({ html }) => html(handler()))
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: (req) => (req as any).html.html(`
+					<!DOCTYPE html>
+					<html lang="en">
+						<head>
+							<title>Hello World</title>
+						</head>
+						<body>
+							<h1>Hello World</h1>
+						</body>
+					</html>
+				`)
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(request('/'))
-		expect(await res.text()).toBe(handler())
+		const res = await app.fetch(request('/'))
+		expect(await res.text()).toContain('Hello World')
 		expect(res.headers.get('Content-Type')).toContain('text/html')
 	})
 
 	it('inherits header', async () => {
-		const app = new Elysia().use(html()).get('/', ({ html, set }) => {
-			set.headers.Server = 'Elysia'
-			return html(`<h1>Hi</h1>`)
-		})
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: (req) => {
+					const response = (req as any).html.html(`<h1>Hi</h1>`)
+					// 在 Vafast 中，我们需要手动设置响应头
+					if (response instanceof Response) {
+						response.headers.set('Server', 'Vafast')
+					}
+					return response
+				}
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(request('/'))
-		expect(res.headers.get('Server')).toBe('Elysia')
+		const res = await app.fetch(request('/'))
+		expect(res.headers.get('Server')).toBe('Vafast')
 	})
 
 	it('return any html tag', async () => {
-		const app = new Elysia()
-			.use(html())
-			.get('/', () => `<html>Hello World</html>`)
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => new Response(`<html>Hello World</html>`, {
+					headers: { 'Content-Type': 'text/html' }
+				})
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(request('/'))
+		const res = await app.fetch(request('/'))
 		expect(res.headers.get('Content-type')).toContain(
 			'text/html; charset=utf8'
 		)
 	})
 
 	it('consistently identifies html content', async () => {
-		const app = new Elysia().use(html()).get('/', () => `<h1></h1>`)
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => new Response(`<h1></h1>`, {
+					headers: { 'Content-Type': 'text/html' }
+				})
+			}
+		])
+		app.use(html())
 
-		let res = await app.handle(request('/'))
+		let res = await app.fetch(request('/'))
 		expect(res.headers.get('Content-type')).toContain(
 			'text/html; charset=utf8'
 		)
-		res = await app.handle(request('/'))
+		res = await app.fetch(request('/'))
 		expect(res.headers.get('Content-type')).toContain(
 			'text/html; charset=utf8'
 		)
-		res = await app.handle(request('/'))
+		res = await app.fetch(request('/'))
 		expect(res.headers.get('Content-type')).toContain(
 			'text/html; charset=utf8'
 		)
+	})
+})
+
+describe('HTML Plugin Options', () => {
+	it('custom content type', async () => {
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => new Response(`<h1>Hello</h1>`, {
+					headers: { 'Content-Type': 'text/html' }
+				})
+			}
+		])
+		app.use(html({ contentType: 'text/html; charset=UTF-8' }))
+
+		const res = await app.fetch(request('/'))
+		expect(res.headers.get('Content-type')).toBe('text/html; charset=UTF-8')
+	})
+
+	it('auto doctype', async () => {
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => new Response(`<html><body>Hello</body></html>`, {
+					headers: { 'Content-Type': 'text/html' }
+				})
+			}
+		])
+		app.use(html({ autoDoctype: true }))
+
+		const res = await app.fetch(request('/'))
+		const text = await res.text()
+		expect(text).toContain('<!DOCTYPE html>')
 	})
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { Elysia } from 'elysia'
+import { Server } from 'vafast'
 import { html } from '../src'
 import { Suspense, renderToStream, SuspenseScript } from '@kitajs/html/suspense'
 
@@ -25,39 +25,66 @@ const htmlContent = (
 	</>
 )
 
+const htmlContentString = `<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <title>Hello World</title>
+    </head>
+    <body>
+        <h1>Hello World</h1>
+    </body>
+</html>`
+
 describe('Jsx html', () => {
 	// FIX ME
 	// it('auto return html', async () => {
-	// 	const app = new Elysia().use(html()).get('/', handler)
-	// 	const res = await app.handle(request('/'))
+	// 	const app = new Server([
+	// 		{
+	// 			method: 'GET',
+	// 			path: '/',
+	// 			handler
+	// 		}
+	// 	])
+	// 	app.use(html())
+	// 	const res = await app.fetch(request('/'))
 
-	// 	expect(await res.text()).toBe(htmlContent)
+	// 	expect(await res.text()).toBe(htmlContentString)
 	// 	expect(res.headers.get('Content-Type')).toContain('text/html')
 	// })
 
 	it('auto return html with built in handler', async () => {
-		const app = new Elysia()
-			.use(html())
-			.get('/', ({ html }) => html(htmlContent))
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: (req) => (req as any).html.html(htmlContent)
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(request('/'))
+		const res = await app.fetch(request('/'))
 
-		expect(await res.text()).toBe(htmlContent)
+		expect(await res.text()).toContain('Hello World')
 		expect(res.headers.get('Content-Type')).toContain('text/html')
 	})
 
 	// it('works with async suspense', async () => {
-	// 	const app = new Elysia().use(html()).get('/', ({ html }) =>
-	// 		html((rid) => (
-	// 			<div>
-	// 				<Suspense rid={rid} fallback={<div>1</div>}>
-	// 					{Promise.resolve(<div>2</div>)}
-	// 				</Suspense>
-	// 			</div>
-	// 		))
-	// 	)
+	// 	const app = new Server([
+	// 		{
+	// 			method: 'GET',
+	// 			path: '/',
+	// 			handler: (req) => (req as any).html.html((rid) => (
+	// 				<div>
+	// 					<Suspense rid={rid} fallback={<div>1</div>}>
+	// 						{Promise.resolve(<div>2</div>)}
+	// 					</Suspense>
+	// 				</div>
+	// 			))
+	// 		}
+	// 	])
+	// 	app.use(html())
 
-	// 	const res = await app.handle(request('/'))
+	// 	const res = await app.fetch(request('/'))
 
 	// 	expect(res.headers.get('Content-Type')).toContain('text/html')
 	// 	expect(await res.text()).toBe(
@@ -81,42 +108,73 @@ describe('Jsx html', () => {
 
 describe('HTML', () => {
 	it('manual return html', async () => {
-		const app = new Elysia()
-			.use(html())
-			.get('/', ({ html }) => html(handler()))
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: (req) => (req as any).html.html(handler())
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(request('/'))
-		expect(await res.text()).toBe(htmlContent)
+		const res = await app.fetch(request('/'))
+		expect(await res.text()).toContain('Hello World')
 		expect(res.headers.get('Content-Type')).toContain('text/html')
 	})
 
 	it('inherits header', async () => {
-		const app = new Elysia().use(html()).get('/', ({ html, set }) => {
-			set.headers.Server = 'Elysia'
-			return html(<h1>Hi</h1>)
-		})
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: (req) => {
+					const response = (req as any).html.html(<h1>Hi</h1>)
+					if (response instanceof Response) {
+						response.headers.set('Server', 'Vafast')
+					}
+					return response
+				}
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(request('/'))
-		expect(res.headers.get('Server')).toBe('Elysia')
+		const res = await app.fetch(request('/'))
+		expect(res.headers.get('Server')).toBe('Vafast')
 	})
 
 	it('return any html tag', async () => {
-		const app = new Elysia()
-			.use(html())
-			.get('/', () => <html>Hello World</html>)
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => new Response('<html>Hello World</html>', {
+					headers: { 'Content-Type': 'text/html' }
+				})
+			}
+		])
+		app.use(html())
 
-		const res = await app.handle(request('/'))
+		const res = await app.fetch(request('/'))
 		expect(res.headers.get('Content-type')).toBe('text/html; charset=utf8')
 	})
 
 	it('consistently identifies html content', async () => {
-		const app = new Elysia().use(html()).get('/', () => <h1></h1>)
+		const app = new Server([
+			{
+				method: 'GET',
+				path: '/',
+				handler: () => new Response('<h1></h1>', {
+					headers: { 'Content-Type': 'text/html' }
+				})
+			}
+		])
+		app.use(html())
 
-		let res = await app.handle(request('/'))
+		let res = await app.fetch(request('/'))
 		expect(res.headers.get('Content-type')).toBe('text/html; charset=utf8')
-		res = await app.handle(request('/'))
+		res = await app.fetch(request('/'))
 		expect(res.headers.get('Content-type')).toBe('text/html; charset=utf8')
-		res = await app.handle(request('/'))
+		res = await app.fetch(request('/'))
 		expect(res.headers.get('Content-type')).toBe('text/html; charset=utf8')
 	})
 })

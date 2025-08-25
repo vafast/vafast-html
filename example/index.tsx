@@ -1,6 +1,11 @@
-import { Elysia, t } from 'elysia'
-import html from '../src'
+/** @jsx createElement */
+import { Server } from 'vafast'
+import { html } from '../src'
 import { Suspense } from '@kitajs/html/suspense'
+import { createElement } from '@kitajs/html'
+
+// JSX namespace declaration for @kitajs/html
+
 
 function page({ name }: { name: string }): string {
 	return `
@@ -15,7 +20,7 @@ function page({ name }: { name: string }): string {
 	`
 }
 
-// https://elysiajs.com/plugins/html.html#jsx
+// JSX example
 function TsxPage({ name }: { name: string }): JSX.Element {
 	return (
 		<html lang="en" style={{ backgroundColor: 'black', color: 'white' }}>
@@ -51,23 +56,51 @@ function AsyncPage({ name, id }: { id: number; name: string }): JSX.Element {
 	)
 }
 
-// https://elysiajs.com/concept/schema.html
-const indexSchema = {
-	query: t.Object({
-		name: t.String({ default: 'World' })
-	})
-}
+// Create server with routes
+const app = new Server([
+	{
+		method: 'GET',
+		path: '/',
+		handler: () => <h1>Hello World</h1>
+	},
+	{
+		method: 'GET',
+		path: '/page/:name',
+		handler: (req) => {
+			const name = (req as any).params?.name || 'World'
+			return (req as any).html.html(page({ name }))
+		}
+	},
+	{
+		method: 'GET',
+		path: '/tsx/:name',
+		handler: (req) => {
+			const name = (req as any).params?.name || 'World'
+			return (req as any).html.html(<TsxPage name={name} />)
+		}
+	},
+	{
+		method: 'GET',
+		path: '/async/:name',
+		handler: (req) => {
+			const name = (req as any).params?.name || 'World'
+			return (req as any).html.stream(AsyncPage, { name })
+		}
+	}
+])
 
-const app = new Elysia()
-	// https://elysiajs.com/plugins/html.html#options
-	.use(html())
-	.get('/', () => <h1>Hello World</h1>)
-	.listen(8080, () => console.log('Listening on http://localhost:8080'))
+// Use HTML plugin
+app.use(html())
 
-app.handle(new Request('http://localhost:8080/'))
-	.then((x) => x.text())
-	.then(console.log)
+// Start server using Bun.serve
+Bun.serve({
+	port: 8080,
+	fetch: (req: Request) => app.fetch(req)
+})
 
-app.handle(new Request('http://localhost:8080/'))
-	.then((x) => x.headers.toJSON())
-	.then(console.log)
+console.log('Server running at http://localhost:8080')
+console.log('Try these endpoints:')
+console.log('  - http://localhost:8080/')
+console.log('  - http://localhost:8080/page/YourName')
+console.log('  - http://localhost:8080/tsx/YourName')
+console.log('  - http://localhost:8080/async/YourName')
