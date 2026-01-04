@@ -1,6 +1,6 @@
 {
 	"name": "@vafast/html",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "HTML rendering plugin for Vafast framework",
 	"type": "module",
 	"author": {
