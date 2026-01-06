@@ -1,7 +1,7 @@
 import { Server } from 'vafast'
 import { html } from '../src'
 
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 
 const req = (path: string) => new Request(`http://localhost${path}`)
 
@@ -141,8 +141,8 @@ describe('HTML vs No html - header', () => {
 
 		const res = await app.fetch(req('/'))
 		expect(res.headers.get('Server')).toBe('Vafast')
-		// 当前实现不自动设置 text/plain 头部
-		expect(res.headers.get('Content-Type')).toBe(null)
+		// vafast 现在自动设置 Content-Type
+		expect(res.headers.get('Content-Type')).toBe('text/plain;charset=UTF-8')
 	})
 
 	it('inherits header json response when using the html plugin', async () => {
