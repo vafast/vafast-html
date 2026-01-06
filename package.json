@@ -1,6 +1,6 @@
 {
 	"name": "@vafast/html",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"description": "HTML rendering plugin for Vafast framework",
 	"type": "module",
 	"author": {
@@ -46,7 +46,7 @@
 		"LICENSE"
 	],
 	"devDependencies": {
-    "@types/node": "^24.0.0",
+		"@types/node": "^24.0.0",
 		"rimraf": "^6.0.1",
 		"tsup": "^8.5.1",
 		"typescript": "^5.4.5",
