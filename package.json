@@ -5,7 +5,7 @@
 	"type": "module",
 	"author": {
 		"name": "Vafast Team",
-		"url": "https://github.com/vafastjs",
+		"url": "https://github.com/vafast",
 		"email": "team@vafast.dev"
 	},
 	"main": "./dist/index.js",
@@ -24,12 +24,12 @@
 		"jsx",
 		"rendering"
 	],
-	"homepage": "https://github.com/vafastjs/vafast-html",
+	"homepage": "https://github.com/vafast/vafast-html",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/vafastjs/vafast-html"
+		"url": "https://github.com/vafast/vafast-html"
 	},
-	"bugs": "https://github.com/vafastjs/vafast-html/issues",
+	"bugs": "https://github.com/vafast/vafast-html/issues",
 	"license": "MIT",
 	"scripts": {
 		"build": "tsdown",
