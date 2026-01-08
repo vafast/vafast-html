@@ -13,7 +13,7 @@ HTML rendering plugin for Vafast framework.
 ## Installation
 
 ```bash
-bun add @vafast/html
+npm install @vafast/html
 ```
 
 ## Quick Start
