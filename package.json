@@ -1,6 +1,6 @@
 {
 	"name": "@vafast/html",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"description": "HTML rendering plugin for Vafast framework",
 	"type": "module",
 	"author": {
@@ -38,7 +38,7 @@
 		"release": "npm run build && npm run test && npx bumpp && npm publish --access=public"
 	},
 	"peerDependencies": {
-		"vafast": ">=0.3.11"
+		"vafast": "^0.5.1"
 	},
 	"files": [
 		"dist",
@@ -50,7 +50,7 @@
 		"rimraf": "^6.0.1",
 		"tsdown": "^0.19.0-beta.4",
 		"typescript": "^5.4.5",
-		"vafast": ">=0.3.11",
+		"vafast": "^0.5.1",
 		"vitest": "^4.0.16"
 	},
 	"dependencies": {

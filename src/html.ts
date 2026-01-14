@@ -1,4 +1,4 @@
-import type { Middleware } from 'vafast'
+import { defineMiddleware } from 'vafast'
 import { Readable } from 'node:stream'
 import { renderToStream } from '@kitajs/html/suspense'
 
@@ -6,14 +6,14 @@ import { handleHtml } from './handler'
 import { HtmlOptions } from './options'
 import { isHtml } from './utils'
 
-export function createHtmlPlugin(options: HtmlOptions = {}): Middleware {
+export function createHtmlPlugin(options: HtmlOptions = {}) {
 	// Defaults
 	options.contentType ??= 'text/html; charset=utf8'
 	options.autoDetect ??= true
 	options.isHtml ??= isHtml
 	options.autoDoctype ??= true
 
-	return async (req, next) => {
+	return defineMiddleware<object>(async (req, next) => {
 		// 创建 HTML 响应对象
 		const htmlResponse = {
 			html(
@@ -70,7 +70,7 @@ export function createHtmlPlugin(options: HtmlOptions = {}): Middleware {
 		}
 
 		return response
-	}
+	})
 }
 
 // 导出默认插件
