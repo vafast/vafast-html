@@ -1,128 +1,105 @@
 # @vafast/html
 
-HTML rendering plugin for Vafast framework.
+在请求上挂载 `req.html`，通过 `html()` / `stream()` 返回 HTML（配合 [@kitajs/html](https://github.com/kitajs/html)）。
 
-## Features
+> **不要直接 `return` HTML 字符串。** 框架会把普通 `string` 当成 `text/plain`。必须使用 `req.html.html(...)`。
 
-- 🚀 **Fast HTML Rendering** - Efficient HTML response handling
-- 🔧 **Easy Integration** - Simple middleware integration with Vafast
-- 📝 **JSX Support** - Support for JSX elements and streaming
-- 🎯 **Auto Detection** - Automatically detect and handle HTML responses
-- ⚡ **Streaming Support** - Built-in streaming HTML responses
-
-## Installation
+## 安装
 
 ```bash
 npm install @vafast/html
 ```
 
-## Quick Start
+## 快速开始
 
 ```typescript
-import { createServer } from "vafast";
-import { html } from "@vafast/html";
+import { Server, defineRoute, defineRoutes, serve } from 'vafast'
+import { html } from '@vafast/html'
 
-const app = createServer();
+type HtmlRequest = Request & {
+  html: {
+    html: (value: string) => Response | string | Promise<Response | string>
+  }
+}
 
-// Use HTML plugin
-app.use(html());
+const routes = defineRoutes([
+  defineRoute({
+    method: 'GET',
+    path: '/',
+    handler: ({ req }) => {
+      return (req as HtmlRequest).html.html(`
+        <!doctype html>
+        <html><body><h1>Hello</h1></body></html>
+      `)
+    },
+  }),
+])
 
-// Define routes
-app.get("/", (req) => {
-  return req.html.html(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Hello World</title>
-      </head>
-      <body>
-        <h1>Hello from Vafast!</h1>
-      </body>
-    </html>
-  `);
-});
-
-app.listen(3000);
+const server = new Server(routes)
+server.use(html())
+serve({ fetch: server.fetch, port: 3000 })
 ```
 
-## API
+## 用法
 
-### `html(options?: HtmlOptions)`
-
-Creates an HTML middleware with the specified options.
-
-#### Options
-
-- `contentType` - Content-Type header for HTML responses (default: `"text/html; charset=utf8"`)
-- `autoDetect` - Automatically detect HTML responses (default: `true`)
-- `autoDoctype` - Automatically add DOCTYPE to HTML (default: `true`)
-- `isHtml` - Custom function to detect HTML content
-
-### `req.html.html(value: string | JSX.Element)`
-
-Renders HTML content and returns a Response object.
-
-### `req.html.stream<T>(value: Function, args: T)`
-
-Creates a streaming HTML response.
-
-## Examples
-
-### Basic HTML Response
+### 流式渲染
 
 ```typescript
-app.get("/page", (req) => {
-  return req.html.html(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>My Page</title>
-      </head>
-      <body>
-        <h1>Welcome!</h1>
-        <p>This is a simple HTML page.</p>
-      </body>
-    </html>
-  `);
-});
+handler: ({ req }) =>
+  (req as any).html.stream(
+    ({ id, title }) => `<html><body><h1>${title} #${id}</h1></body></html>`,
+    { title: 'Stream' },
+  )
 ```
 
-### Streaming Response
+### 自定义选项
 
 ```typescript
-app.get("/stream", (req) => {
-  return req.html.stream(({ id }) => `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Streaming</title>
-      </head>
-      <body>
-        <h1>Stream ID: ${id}</h1>
-        <p>Generated at: ${new Date().toISOString()}</p>
-      </body>
-    </html>
-  `, { timestamp: Date.now() });
-});
+server.use(
+  html({
+    contentType: 'text/html; charset=utf8',
+    autoDetect: true,
+    autoDoctype: true,
+  }),
+)
 ```
 
-### Custom Options
+## API 完整参数
 
-```typescript
-app.use(html({
-  contentType: "text/html; charset=UTF-8",
-  autoDetect: true,
-  autoDoctype: false
-}));
-```
+### `html(options?)` / `createHtmlPlugin(options?)`
 
-## Migration from Elysia
+| 参数 | 默认 | 说明 |
+|------|------|------|
+| `contentType` | `'text/html; charset=utf8'` | Content-Type |
+| `autoDetect` | `true` | 下游已是 HTML Response 时统一 content-type |
+| `autoDoctype` | `true` | 经 `html()`/`stream()` 且以 `<html` 开头时加 doctype |
+| `isHtml` | 内置 | 字符串是否像 HTML |
 
-If you're migrating from `@elysiajs/html`, the main changes are:
+### `req.html`
 
-1. **Import**: Change from `import { html } from '@elysiajs/html'` to `import { html } from '@vafast/html'`
-2. **Usage**: Use `app.use(html())` instead of `app.use(html())`
-3. **API**: The API remains the same: `req.html.html()` and `req.html.stream()`
+| 方法 | 说明 |
+|------|------|
+| `html(value)` | 渲染为 HTML `Response` |
+| `stream(fn, args)` | Suspense 流式渲染 |
+
+另导出：`Html`、`createElement`、`ErrorBoundary`、`isHtml` 等。
+
+## 最佳实践
+
+- 一律 `return req.html.html(...)`
+- 大页面考虑 `stream`
+- 全局 `server.use(html())` 一次即可
+
+## 注意事项
+
+- 普通字符串返回值 = **`text/plain`**
+- `autoDetect` 不会把 plain string 变成 HTML
+- `autoDoctype: 'full'` 不会让未调用 `html()` 的字符串自动变成 HTML 响应
+
+## 相关链接
+
+- 文档：[`docs/middleware/html.md`](../vafast-doc/docs/middleware/html.md)
+- [kitajs/html](https://github.com/kitajs/html)
 
 ## License
 

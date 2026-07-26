@@ -3,7 +3,7 @@ import { Readable } from 'node:stream'
 import { renderToStream } from '@kitajs/html/suspense'
 
 import { handleHtml } from './handler'
-import { HtmlOptions } from './options'
+import type { HtmlOptions } from './options'
 import { isHtml } from './utils'
 
 export function createHtmlPlugin(options: HtmlOptions = {}) {
